@@ -1,7 +1,7 @@
 ---
 title: "ME315 - Lab02"
 author: "Pedro José"
-format: docx
+format: pdf
 editor: visual
 ---
 
