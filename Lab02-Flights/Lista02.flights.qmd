@@ -1,0 +1,79 @@
+---
+title: "Lab 02 - Processamento de Bases de Dados em Lote"
+author: "Pedro José"
+format: pdf
+editor: visual
+---
+
+```{r}
+library(readr)
+library(dplyr)
+```
+
+Atribuindo as funções getstats e computestats
+
+```{r}
+getStats <- function(input, pos) {
+  input %>%
+    filter(AIRLINE %in% c("AA", "DL", "UA", "US")) %>%
+    filter(!is.na(ARRIVAL_DELAY)) %>%
+    group_by(MONTH, DAY, AIRLINE) %>%
+    summarise(
+      total_voos = n(),
+      voos_atrasados = sum(ARRIVAL_DELAY > 10)
+    )
+}
+
+computeStats <- function(stats) {
+  stats %>%
+    group_by(MONTH, DAY, AIRLINE) %>%
+    summarise(
+      total_voos = sum(total_voos),
+      voos_atrasados = sum(voos_atrasados)
+    ) %>%
+    mutate(
+      percentual = round((voos_atrasados / total_voos) * 100, 2)
+    )
+}
+
+```
+
+Processando em lotes
+
+```{r}
+Estats_por_chunk <- read_csv_chunked("flights.csv.zip",
+                 callback = DataFrameCallback$new(getStats),
+                 chunk_size = 100000,
+                 col_types = cols_only(
+                   MONTH = col_integer(),
+                   DAY =  col_integer(),
+                   AIRLINE = col_character(),
+                   ARRIVAL_DELAY = col_integer())
+                 )
+```
+Encontrando o resultado final
+```{r}
+result_final <- computeStats(Estats_por_chunk)
+head(result_final)
+
+```
+Analisando o total por companhia aérea
+
+```{r}
+por_companhia <- result_final%>%
+  group_by(AIRLINE)%>%
+  summarise(total_voos_gerais= sum(total_voos),
+            voos_atrasados_gerais = sum(voos_atrasados)) %>%
+  mutate(percentual_de_atraso = round((voos_atrasados_gerais/total_voos_gerais)*100, 2))%>%
+  arrange(percentual_de_atraso)
+
+
+head(por_companhia)
+
+```
+momento de compilação 
+```{r}
+Sys.setenv(TZ = "America/Sao_Paulo")
+Sys.time()
+```
+
