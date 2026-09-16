@@ -1,0 +1,96 @@
+---
+title: "Lab05"
+author: "Pedro José"
+format: html
+editor: visual
+---
+
+Criando a função
+
+```{r}
+analisa_aeronave <- function(tail_number, arquivo) {
+  
+  # Lendo a tabela de aeroportos
+  airports <- read_csv("airports.csv")
+  
+  # 1 - Lendo o arquivo em chunks e filtrando o avião
+  voos_do_aviao <- read_csv_chunked(
+    arquivo,
+    callback = DataFrameCallback$new(function(chunk, pos) {
+      chunk %>% filter(TAIL_NUMBER == tail_number)
+    }),
+    chunk_size = 1000000
+  )
+  
+  # 2 - Ordenando por data e hora
+  voos_do_aviao <- voos_do_aviao %>% 
+    arrange(YEAR, MONTH, DAY, SCHEDULED_DEPARTURE)
+  
+  # 3 - Juntando com Airports
+  
+  voos_do_aviao <- voos_do_aviao %>%
+    left_join(airports, by = c("ORIGIN_AIRPORT" = "IATA_CODE")) %>%
+    rename(
+      LATITUDE_ORIGEM = LATITUDE,
+      LONGITUDE_ORIGEM = LONGITUDE
+    )
+  
+  # 4 - Juntando com Airports
+  voos_do_aviao <- voos_do_aviao %>%
+    left_join(airports, by = c("DESTINATION_AIRPORT" = "IATA_CODE")) %>%
+    rename(
+      LATITUDE_DESTINO = LATITUDE,
+      LONGITUDE_DESTINO = LONGITUDE
+    )
+  
+  # 5 - criando o mapa
+  
+  mapa <- leaflet(voos_do_aviao) %>%
+  addTiles() %>%
+  addPolylines(
+    lng = ~c(LONGITUDE_ORIGEM, LONGITUDE_DESTINO),
+    lat = ~c(LATITUDE_ORIGEM, LATITUDE_DESTINO),
+    group = "Trajeto"
+  ) %>%
+  addMarkers(
+    lng = ~LONGITUDE_ORIGEM,
+    lat = ~LATITUDE_ORIGEM,
+    popup = ~paste(
+      "Aeroporto:", ORIGIN_AIRPORT, "<br>",
+      "Data:", DAY, "/", MONTH, "/", YEAR
+    ),
+    group = "Aeroportos"
+  )
+  
+  # 6 - Retornando a lista
+  
+  return(list(tabela = voos_do_aviao, grafico = mapa))
+}
+```
+
+Testando a função
+
+```{r}
+library(tidyverse)
+library(leaflet)
+library(readr)
+
+resultado <- analisa_aeronave("N431WN", "flights.csv.zip")
+
+```
+
+Visualizando a função
+
+```{r}
+head(resultado$tabela)
+
+resultado$grafico
+```
+
+Chunk para ver o horário
+
+```{r}
+Sys.setenv(TZ = "America/Sao_Paulo")
+Sys.time()
+
+```
