@@ -1,0 +1,149 @@
+---
+title: "Lab 7"
+author: "Pedro José"
+format: pdf
+editor: visual
+---
+
+Conexão R -\> SQLite
+
+```{r}
+library(DBI)
+library(RSQLite)
+
+con <- dbConnect(SQLite(), "C:/Users/Pedro José/Downloads/uwmadison.sqlite3")
+
+dbListTables(con)
+```
+
+Quem são os professores?
+
+```{sql connection=con}
+SELECT DISTINCT instructors.name
+FROM subjects
+INNER JOIN subject_memberships ON subjects.code = subject_memberships.subject_code
+INNER JOIN course_offerings ON subject_memberships.course_offering_uuid = course_offerings.uuid
+INNER JOIN sections ON course_offerings.uuid = sections.course_offering_uuid
+INNER JOIN teachings ON sections.uuid = teachings.section_uuid
+INNER JOIN instructors ON teachings.instructor_id = instructors.id
+WHERE subjects.abbreviation = 'STAT'
+ORDER BY instructors.name
+```
+
+Quantos são?
+
+```{sql connection=con}
+SELECT COUNT(DISTINCT instructors.name)
+FROM subjects
+INNER JOIN subject_memberships ON subjects.code = subject_memberships.subject_code
+INNER JOIN course_offerings ON subject_memberships.course_offering_uuid = course_offerings.uuid
+INNER JOIN sections ON course_offerings.uuid = sections.course_offering_uuid
+INNER JOIN teachings ON sections.uuid = teachings.section_uuid
+INNER JOIN instructors ON teachings.instructor_id = instructors.id
+WHERE subjects.abbreviation = 'STAT'
+
+```
+
+GPA
+```{sql connection=con}
+
+SELECT course_offerings.name,
+       (a_count*4 + ab_count*3.5 + b_count*3 + bc_count*2.5 + c_count*2 + d_count*1) * 1.0
+       / (a_count + ab_count + b_count + bc_count + c_count + d_count + f_count) AS gpa
+FROM subjects
+INNER JOIN subject_memberships ON subjects.code = subject_memberships.subject_code
+INNER JOIN course_offerings ON subject_memberships.course_offering_uuid = course_offerings.uuid
+INNER JOIN grade_distributions ON course_offerings.uuid = grade_distributions.course_offering_uuid
+WHERE subjects.abbreviation = 'STAT'
+
+```
+
+Professor Mais Dificil
+
+```{sql connection=con}
+SELECT instructors.name, 
+       AVG((a_count*4 + ab_count*3.5 + b_count*3 + bc_count*2.5 + c_count*2 + d_count*1) * 1.0
+           / (a_count + ab_count + b_count + bc_count + c_count + d_count + f_count)) AS gpa_medio
+FROM subjects
+INNER JOIN subject_memberships ON subjects.code = subject_memberships.subject_code
+INNER JOIN course_offerings ON subject_memberships.course_offering_uuid = course_offerings.uuid
+INNER JOIN grade_distributions ON course_offerings.uuid = grade_distributions.course_offering_uuid
+INNER JOIN sections ON course_offerings.uuid = sections.course_offering_uuid
+INNER JOIN teachings ON sections.uuid = teachings.section_uuid
+INNER JOIN instructors ON teachings.instructor_id = instructors.id
+WHERE subjects.abbreviation = 'STAT'
+  AND (a_count + ab_count + b_count + bc_count + c_count + d_count + f_count) > 0
+GROUP BY instructors.name
+ORDER BY gpa_medio ASC
+LIMIT 1
+
+```
+Professor mais fácil
+
+```{sql connection=con}
+SELECT instructors.name, 
+       AVG((a_count*4 + ab_count*3.5 + b_count*3 + bc_count*2.5 + c_count*2 + d_count*1) * 1.0
+           / (a_count + ab_count + b_count + bc_count + c_count + d_count + f_count)) AS gpa_medio
+FROM subjects
+INNER JOIN subject_memberships ON subjects.code = subject_memberships.subject_code
+INNER JOIN course_offerings ON subject_memberships.course_offering_uuid = course_offerings.uuid
+INNER JOIN grade_distributions ON course_offerings.uuid = grade_distributions.course_offering_uuid
+INNER JOIN sections ON course_offerings.uuid = sections.course_offering_uuid
+INNER JOIN teachings ON sections.uuid = teachings.section_uuid
+INNER JOIN instructors ON teachings.instructor_id = instructors.id
+WHERE subjects.abbreviation = 'STAT'
+  AND (a_count + ab_count + b_count + bc_count + c_count + d_count + f_count) > 0
+GROUP BY instructors.name
+ORDER BY gpa_medio desc
+LIMIT 1;
+
+```
+Disciplina mais dificil
+
+```{sql connection=con}
+
+SELECT course_offerings.name, 
+       AVG((a_count*4 + ab_count*3.5 + b_count*3 + bc_count*2.5 + c_count*2 + d_count*1) * 1.0
+           / (a_count + ab_count + b_count + bc_count + c_count + d_count + f_count)) AS gpa_medio
+FROM subjects
+INNER JOIN subject_memberships ON subjects.code = subject_memberships.subject_code
+INNER JOIN course_offerings ON subject_memberships.course_offering_uuid = course_offerings.uuid
+INNER JOIN grade_distributions ON course_offerings.uuid = grade_distributions.course_offering_uuid
+WHERE subjects.abbreviation = 'STAT'
+  AND (a_count + ab_count + b_count + bc_count + c_count + d_count + f_count) > 0
+GROUP BY course_offerings.name
+ORDER BY gpa_medio ASC
+LIMIT 1;
+
+```
+
+Disciplina mais fácil
+
+```{sql connection=con}
+SELECT course_offerings.name, 
+       AVG((a_count*4 + ab_count*3.5 + b_count*3 + bc_count*2.5 + c_count*2 + d_count*1) * 1.0
+           / (a_count + ab_count + b_count + bc_count + c_count + d_count + f_count)) AS gpa_medio
+FROM subjects
+INNER JOIN subject_memberships ON subjects.code = subject_memberships.subject_code
+INNER JOIN course_offerings ON subject_memberships.course_offering_uuid = course_offerings.uuid
+INNER JOIN grade_distributions ON course_offerings.uuid = grade_distributions.course_offering_uuid
+WHERE subjects.abbreviation = 'STAT'
+  AND (a_count + ab_count + b_count + bc_count + c_count + d_count + f_count) > 0
+GROUP BY course_offerings.name
+ORDER BY gpa_medio desc
+LIMIT 1;
+
+```
+Desconectando
+```{r}
+dbDisconnect(con)
+```
+
+
+Chunk com Horário
+
+```{r}
+Sys.setenv(TZ = "America/Sao_Paulo")
+Sys.time()
+```
+
