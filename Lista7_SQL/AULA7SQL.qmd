@@ -1,0 +1,205 @@
+---
+title: "Lab 7"
+author: "Pedro José"
+format: pdf
+editor: visual
+---
+
+Configurando Rstudio
+
+```{r}
+setwd("C:/Users/Pedro José/OneDrive/Desktop")
+getwd()
+```
+
+```{r}
+library(DBI)
+library(RSQLite)
+
+
+con <-  dbConnect(SQLite(),"purchase.sqlite")
+
+dbListTables(con)
+```
+
+Tabela completa
+
+```{sql connection=con}
+select * from purchase
+
+```
+
+1.  Consulte a tabela `PURCHASE`. Para cada projeto, exiba seu número de projeto (`PJNO`), seguido pelo custo total de todas as peças compradas para o projeto. Ordene o resultado pelos valores de PJNO.
+
+    ```{sql connection=con}
+    select Pjno, sum(cost) from purchase
+    group by PJNO
+    order by pjno
+
+
+    ```
+
+2.  Consulte a tabela `PURCHASE`. Para cada fornecedor, exiba seu número de fornecedor (`SNO`), seguido pelo custo total de todas as peças compradas do fornecedor.
+
+    ```{sql connection=con}
+    select sno, sum(cost) from purchase
+    group by sno
+
+    ```
+
+3.  Consulte a tabela `PURCHASE`. Para cada projeto que utilizou peças fornecidas por algum fornecedor, exiba o número do projeto (`PJNO`), seguido pelo número do fornecedor (`SNO`) e pelo custo total das peças do projeto compradas desse fornecedor. Ordene o resultado por `SNO` dentro de cada `PJNO`.
+
+    ```{sql connection=con}
+    select pjno, sno, sum(cost) as custo_total from purchase
+    group by pjno, sno
+    order by pjno, sno
+
+    ```
+
+4.  Para cada fornecedor que vendeu pelo menos uma peça para ser utilizada em algum projeto, exiba o valor `SNO` do fornecedor, seguido pelo valor `PJNO` do projeto e pelo custo total das peças que o fornecedor forneceu para o projeto. Ordene o resultado por `PJNO` dentro de cada `SNO`.
+
+    ```{sql connection=con}
+    select sno, pjno, sum(cost) from purchase
+    group by sno, pjno
+    order by sno, pjno
+
+
+    ```
+
+5.  Consulte a tabela `PURCHASE`. Para cada funcionário que comprou peças de um fornecedor, exiba o valor `ENO` do funcionário, seguido pelo valor `SNO` do fornecedor e, em seguida, pelo custo total das peças que o funcionário comprou desse fornecedor.
+
+    ```{sql connection=con}
+    select eno, sno, sum(cost) from purchase
+    group by eno, sno
+
+    ```
+
+6.  Consulte a tabela `PURCHASE`. Para cada projeto em que um funcionário comprou uma peça de um fornecedor para ser utilizada no projeto, exiba os respectivos valores `PJNO`, `ENO` e `SNO`, seguidos pelo custo total das peças compradas pelo funcionário do fornecedor para o projeto. Ordene o resultado por `SNO` dentro de `ENO`, dentro de `PJNO`.
+
+    ```{sql connection=con}
+    select pjno, eno, sno, sum(cost) from purchase
+    group by pjno, eno, sno
+    order by pjno, eno, sno
+
+    ```
+
+7.  Consulte a tabela `PURCHASE`. Para cada projeto em que um funcionário comprou uma peça de um fornecedor para ser utilizada no projeto, exiba os respectivos valores `PJNO`, `ENO`, `SNO` e `PNO`, seguidos pelo custo total de cada peça comprada pelo funcionário do fornecedor para o projeto. Ordene o resultado por `PNO` dentro de `SNO`, dentro de `ENO`, dentro de `PJNO`.
+
+    ```{sql connection=con}
+    select pjno, eno, sno, pno, sum(cost) from purchase
+    group by pjno, eno, sno, pno
+    order by pjno, eno, sno, pno
+
+    ```
+
+8.  Consulte a tabela `PURCHASE`. Considere apenas as compras realizadas pelo funcionário E1. Para cada fornecedor do qual o funcionário E1 comprou uma peça, exiba os respectivos valores `ENO` e `SNO`, seguidos pelo custo total, custo máximo e custo mínimo das compras realizadas pelo funcionário `E1` de cada fornecedor.
+
+    ```{sql connection=con}
+    select eno, sno, sum(cost), max(cost), min(cost) from purchase
+    where ENO = "E1"
+    group by eno, sno
+
+    ```
+
+9.  Estamos interessados em saber se algum fornecedor vendeu a mesma peça por preços diferentes (ou seja, se todas as compras que apresentam a mesma combinação de valores (`SNO`, `PNO`) possuem o mesmo valor de `COST`). Para qualquer fornecedor que tenha cobrado preços diferentes pela mesma peça, exiba as seguintes informações:
+
+-   Os respectivos valores de `SNO` e `PNO`;
+
+-   O COST mínimo (`MINCOST`) para cada par de valores (`SNO`, `PNO`);
+
+-   O COST máximo (`MAXCOST`) para cada par de valores (`SNO`, `PNO`);
+
+-   A diferença (`COSTDIFF`) entre os custos máximo e mínimo;
+
+-   Exiba apenas as linhas em que os custos máximo e mínimo sejam diferentes;
+
+-   Exiba as informações na seguinte sequência de colunas: SNO, PNO, MAXCOST, MINCOST, COSTDIFF;
+
+-   Ordene o resultado em ordem decrescente por COSTDIFF. Em caso de valores de COSTDIFF iguais, ordene por PNO (crescente) dentro de SNO (crescente).
+
+```{sql connection=con}
+select sno, pno, max(cost) as MAXCOST, min(cost) as MINCOST, (max(cost) - min(cost)) as costdiff from purchase
+group by sno, pno
+having MAXCOST != MINCOST
+order by costdiff desc, sno, pno
+
+```
+
+10. Hands-on
+
+    1.  Consulte a tabela `PURCHASE`. Para cada peça, exiba seu número da peça (`PNO`), seguido pelo custo total de todas as compras dessa peça.
+
+```{sql connection=con}
+select pno, sum(cost) from purchase
+group by pno
+
+```
+
+2.  Consulte a tabela `PURCHASE`. Para cada funcionário que comprou uma peça, exiba seu número de funcionário (`ENO`), seguido pelo custo total de todas as peças compradas pelo funcionário.
+
+    ```{sql connection=con}
+    select eno, sum(cost) from purchase
+    group by eno
+
+    ```
+
+3.  Consulte a tabela `PURCHASE`. Calcule o total de `COST` para cada combinação de valores de (`PJNO`, `ENO`). Exiba essas colunas, da esquerda para a direita, na sequência (`PJNO`, `ENO`), seguidas pelo custo total. Ordene o resultado em ordem crescente por (`PJNO`, `ENO`).
+
+    ```{sql connection=con}
+    select pjno, eno, sum(cost) from purchase
+    group by pjno, eno
+    order by pjno, eno
+
+    ```
+
+4.  Consulte a tabela `PURCHASE`. Calcule o total de `COST` para cada combinação de valores de (`PNO`, `SNO`). Exiba essas colunas, da esquerda para a direita, na sequência (`PNO`, `SNO`), seguidas pelo custo total. Ordene o resultado em ordem crescente por (`PNO`, `SNO`).
+
+    ```{sql connection=con}
+    select pno, sno, sum(cost) from purchase
+    group by pno, sno
+    order by pno, sno
+
+    ```
+
+5.  Consulte a tabela `PURCHASE`. Calcule o total de `COST` para cada combinação de valores de (`PJNO`, `ENO`, `SNO`). Exiba essas colunas, da esquerda para a direita, na sequência (`PJNO`, `ENO`, `SNO`), seguidas pelo custo total. Ordene o resultado em ordem crescente por (`PJNO`, `ENO`, `SNO`).
+
+    ```{sql connection=con}
+    select pjno, eno, sno, sum(cost) from purchase
+    group by pjno, eno, sno
+    order by pjno, eno, sno
+
+    ```
+
+6.  Consulte a tabela `PURCHASE`. Calcule o total de `COST` para cada combinação de valores de (`PNO`, `SNO`, `ENO`). Exiba essas colunas, da esquerda para a direita, na sequência (`PNO`, `SNO`, `ENO`), seguidas pelo custo total. Ordene o resultado em ordem crescente por (`PNO`, `SNO`, `ENO`).
+
+    ```{sql connection=con}
+    select pno, sno, eno, sum(cost) from purchase
+    group by pno, sno, eno
+    order by pno, sno, eno
+
+    ```
+
+7.  Consulte a tabela `PURCHASE`. Exclua da análise todas as linhas associadas ao projeto `PJ2`. Exiba o total de `COST` para cada combinação de valores (`PJNO`, `ENO`, `SNO`).
+
+    ```{sql connection=con}
+    select pjno, eno, sno, sum(cost) from purchase
+    where PJNO != "PJ2"
+    group by pjno, eno, sno
+
+    ```
+
+8.  Consulte a tabela `PURCHASE`. Exiba o `COST` total para cada combinação de valores (`PNO`, `SNO`, `ENO`) cujo total seja maior ou igual a 2000.
+
+    ```{sql connection=con}
+    select pno, sno, eno, sum(cost) as total from purchase
+    group by pno, sno, eno
+    having total >= 2000
+
+    ```
+
+chunk com horário
+
+```{r}
+Sys.setenv(TZ = "America/Sao_Paulo")
+Sys.time()
+```
